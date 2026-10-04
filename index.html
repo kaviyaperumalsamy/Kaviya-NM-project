@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swift Ship Tracker | Salesforce CRM & Agentforce Logistics Portal</title>
+    <meta name="description" content="Swift Ship Tracker - Enterprise Salesforce DX parcel shipment management and real-time tracking portal powered by Agentforce Vibes and Flow Builder.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Main Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo-group">
+                <div class="logo-icon">⚡</div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="logo-title">Swift Ship Tracker</span>
+                        <span class="logo-badge">Salesforce DX</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs for Salesforce Objects & Live Tracker -->
+            <nav class="nav-tabs">
+                <button class="nav-btn active" data-tab="tracker" id="tabTrackerBtn">
+                    <span>📡 Live Tracker</span>
+                </button>
+                <button class="nav-btn" data-tab="parcels" id="tabParcelsBtn">
+                    <span>📦 Parcels (Parcel__c)</span>
+                </button>
+                <button class="nav-btn" data-tab="senders" id="tabSendersBtn">
+                    <span>🏢 Senders (Sender__c)</span>
+                </button>
+                <button class="nav-btn" data-tab="receivers" id="tabReceiversBtn">
+                    <span>👤 Receivers (Receiver__c)</span>
+                </button>
+                <button class="nav-btn" data-tab="deliveries" id="tabDeliveriesBtn">
+                    <span>🚚 Deliveries (Delivery__c)</span>
+                </button>
+                <button class="nav-btn" data-tab="agentforce" id="tabAgentforceBtn">
+                    <span>🤖 Agentforce AI</span>
+                </button>
+            </nav>
+
+            <div class="header-actions">
+                <!-- Theme Selector -->
+                <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-input); padding: 0.35rem 0.65rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <span style="font-size: 0.8rem;">🎨</span>
+                    <select id="themeSelector" class="form-select" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: transparent; border: none; cursor: pointer; outline: none; color: var(--text-primary);">
+                        <option value="default" style="background: #111a2e; color: #fff;">⚡ Salesforce Blue</option>
+                        <option value="emerald" style="background: #0b221f; color: #fff;">🌿 Emerald Green</option>
+                        <option value="purple" style="background: #17112b; color: #fff;">🔮 Cyber Purple</option>
+                        <option value="sunset" style="background: #22150b; color: #fff;">🌅 Sunset Amber</option>
+                        <option value="cyan" style="background: #0c2029; color: #fff;">💎 Cyber Cyan</option>
+                        <option value="light" style="background: #ffffff; color: #000;">☀️ CRM Light Mode</option>
+                    </select>
+                </div>
+
+                <button class="btn-primary" id="newParcelBtn">
+                    <span>+ New Parcel</span>
+                </button>
+                <button class="btn-outline" id="exportDataBtn" title="Export current dataset as JSON">
+                    <span>📥 Export</span>
+                </button>
+                <button class="btn-outline" id="resetDataBtn" title="Reset dataset to default demo records">
+                    <span>🔄 Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="main-content">
+
+        <!-- KPI Metrics Row -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: rgba(1, 118, 211, 0.15); color: var(--accent-secondary);">📦</div>
+                <div>
+                    <div class="kpi-value" id="kpiTotalParcels">4 Active</div>
+                    <div class="kpi-label">Salesforce Parcels</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">✈️</div>
+                <div>
+                    <div class="kpi-value" id="kpiInTransit">2 Active</div>
+                    <div class="kpi-label">In-Transit Fleets</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⏱️</div>
+                <div>
+                    <div class="kpi-value">1.8 Days</div>
+                    <div class="kpi-label">Avg Delivery SLA</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">🎯</div>
+                <div>
+                    <div class="kpi-value">99.4%</div>
+                    <div class="kpi-label">On-Time Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: LIVE SHIPMENT TRACKER -->
+        <section id="view-tracker">
+            <!-- Search & Quick Selection Hero -->
+            <div class="hero-tracker">
+                <h1 class="hero-title">Real-Time Parcel Logistics & Telemetry</h1>
+                <p class="hero-subtitle">Search any tracking number or click quick Salesforce test parcels below to inspect route checkpoints, GPS coordinates, and Agentforce AI updates.</p>
+                
+                <div class="search-box-wrapper">
+                    <input type="text" id="trackingInput" class="search-input" placeholder="Enter Parcel ID (e.g. TRK-849201)..." value="TRK-849201" />
+                    <button class="btn-primary" id="trackBtn">
+                        <span>🔍 Track Shipment</span>
+                    </button>
+                </div>
+
+                <div class="quick-pills">
+                    <span class="quick-pills-label">Quick Salesforce Parcels:</span>
+                    <button class="pill-btn" data-id="TRK-849201">TRK-849201 (In Transit - Air Freight)</button>
+                    <button class="pill-btn" data-id="TRK-582019">TRK-582019 (Out for Delivery)</button>
+                    <button class="pill-btn" data-id="TRK-109283">TRK-109283 (Delivered - Signed)</button>
+                    <button class="pill-btn" data-id="TRK-741902">TRK-741902 (Booked - ColdChain)</button>
+                </div>
+            </div>
+
+            <!-- Two-Column Tracker View -->
+            <div class="tracking-grid">
+                <!-- Left Column: Live Map & Milestones -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div>
+                            <div id="currentParcelTitle" class="card-title">TRK-849201 — High-Priority Server Components</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Live GPS Telemetry & Checkpoint Routing</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span id="currentParcelBadge" class="status-tag status-In-Transit">● In Transit</span>
+                            <button id="advanceStatusBtn" class="btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" title="Simulate the next step in the Salesforce parcel lifecycle">
+                                ⏩ Advance Status
+                            </button>
+                            <button id="simulateJourneyBtn" class="btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; border-color: var(--accent-secondary); color: var(--accent-secondary);" title="Autoplay full delivery journey">
+                                ▶ Auto-Simulate
+                            </button>
+                            <button id="printWaybillBtn" class="btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" title="Generate and print logistics shipping label">
+                                🏷️ Waybill
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Stepper (Salesforce Picklist Lifecycle) -->
+                    <div class="stepper-container">
+                        <div class="stepper-line-bg"></div>
+                        <div class="stepper-line-progress" id="stepperProgress" style="width: 33%;"></div>
+                        <div id="stepperContainer" style="display: flex; justify-content: space-between; width: 100%; position: relative; z-index: 3;">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Interactive Map -->
+                    <div id="map"></div>
+
+                    <!-- Milestone Checkpoints -->
+                    <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>📍 Transit Checkpoint History</span>
+                    </h3>
+                    <div class="timeline-list" id="timelineContainer">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Record Details & Agentforce Flow Assistant -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Parcel Specification Card -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <span class="card-title">📋 Salesforce Record Details</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-secondary); font-family: monospace;">Schema: Custom Objects</span>
+                        </div>
+                        
+                        <div class="details-grid" id="detailsGrid">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Quick Agentforce AI Vibes Assistant Card -->
+                    <div class="glass-card ai-chat-card">
+                        <div class="card-header">
+                            <span class="card-title">🤖 Agentforce Vibes Assistant</span>
+                            <span style="font-size: 0.7rem; background: rgba(1, 118, 211, 0.2); color: #38bdf8; padding: 0.2rem 0.5rem; border-radius: 12px;">Flow: Parcel_Details</span>
+                        </div>
+                        <div class="chat-messages" id="aiChatMessages">
+                            <div class="chat-bubble bot">
+                                <strong>👋 Agentforce Assistant Ready:</strong> Ask me about parcel locations, sender contacts, delivery timelines, or trigger simulated Salesforce flow executions.
+                            </div>
+                        </div>
+
+                        <!-- Prompt Chips -->
+                        <div class="prompt-chips">
+                            <button class="chip-btn" data-prompt="Where is my parcel right now?">📍 Where is my parcel?</button>
+                            <button class="chip-btn" data-prompt="Who is the sender and receiver for this shipment?">👥 Sender / Receiver info</button>
+                            <button class="chip-btn" data-prompt="When is the estimated delivery date and time?">⏱️ Delivery ETA</button>
+                            <button class="chip-btn" data-prompt="Generate delivery summary for TRK-582019">⚡ Query TRK-582019</button>
+                        </div>
+
+                        <div class="chat-input-row">
+                            <input type="text" id="aiChatInput" class="chat-input" placeholder="Ask Agentforce about any parcel or delivery..." />
+                            <button class="btn-primary" id="aiChatSendBtn" style="padding: 0.75rem 1.25rem;">Ask</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: PARCELS TABLE (Parcel__c) -->
+        <section id="view-parcels" style="display: none;">
+            <div class="glass-card">
+                <div class="controls-bar">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700;">Salesforce Object: <code>Parcel__c</code></h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Managed records for all shipments, tracking IDs, statuses, and delivery dates.</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.swiftApp.openNewParcelModal()">+ Create Parcel Record</button>
+                </div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Parcel ID (Parcel_ID__c)</th>
+                                <th>Parcel Name</th>
+                                <th>Sender (Sender__c)</th>
+                                <th>Receiver (Receiver__c)</th>
+                                <th>Weight (Weight__c)</th>
+                                <th>Status (Status__c)</th>
+                                <th>Estimated Delivery (Estimated_Delivery_Date__c)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parcelsTableBody">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: SENDERS TABLE (Sender__c) -->
+        <section id="view-senders" style="display: none;">
+            <div class="glass-card">
+                <div class="controls-bar">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700;">Salesforce Object: <code>Sender__c</code></h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Enterprise merchant profiles, origin addresses, and primary dispatch contacts.</p>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Sender ID</th>
+                                <th>Merchant Name</th>
+                                <th>Origin Address (Sender_Address__c)</th>
+                                <th>Contact (Sender_Contact__c)</th>
+                                <th>Email (Sender_Email__c)</th>
+                                <th>Active Shipments</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sendersTableBody">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: RECEIVERS TABLE (Receiver__c) -->
+        <section id="view-receivers" style="display: none;">
+            <div class="glass-card">
+                <div class="controls-bar">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700;">Salesforce Object: <code>Receiver__c</code></h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Customer destination records, phone contacts, and linked parcel lookup references.</p>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Receiver ID</th>
+                                <th>Recipient Name</th>
+                                <th>Delivery Address (Receiver_Address__c)</th>
+                                <th>Phone (Receiver_Contact__c)</th>
+                                <th>Email (Receiver_Email__c)</th>
+                                <th>Linked Parcel (Parcel__c)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiversTableBody">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 5: DELIVERIES TABLE (Delivery__c) -->
+        <section id="view-deliveries" style="display: none;">
+            <div class="glass-card">
+                <div class="controls-bar">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700;">Salesforce Object: <code>Delivery__c</code></h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Live logistics assignment, courier driver tracking, vehicle types, and current GPS checkpoints.</p>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Delivery Run ID</th>
+                                <th>Run Name</th>
+                                <th>Linked Parcel</th>
+                                <th>Current Location (Current_Location__c)</th>
+                                <th>Driver & Vehicle</th>
+                                <th>ETA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliveriesTableBody">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 6: AGENTFORCE VIBES FLOW LAB -->
+        <section id="view-agentforce" style="display: none;">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 700;">Salesforce Agentforce Vibes Flow Engine</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Interactive simulator for AutoLaunched Flow: <code>Parcel_Details.flow-meta.xml</code> & Action: <code>Retrieve_Parcel_Details</code></p>
+                    </div>
+                    <span class="status-tag status-In-Transit">Status: Flow Active (v67.0)</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <div>
+                        <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem;">⚡ Flow Metadata Inspection</h4>
+                        <div style="background: #0b0f19; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; font-family: monospace; font-size: 0.8rem; color: #38bdf8; max-height: 400px; overflow-y: auto;">
+&lt;Flow xmlns="http://soap.sforce.com/2006/04/metadata"&gt;<br/>
+&nbsp;&nbsp;&lt;actionCalls&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;name&gt;Parcel_Updates&lt;/name&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;actionName&gt;Retrieve_Parcel_Details&lt;/actionName&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;actionType&gt;generatePromptResponse&lt;/actionType&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;inputParameters&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;name&gt;Input:Parcel__c&lt;/name&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/inputParameters&gt;<br/>
+&nbsp;&nbsp;&lt;/actionCalls&gt;<br/>
+&nbsp;&nbsp;&lt;recordLookups&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;name&gt;Get_Parcel_Records&lt;/name&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;object&gt;Parcel__c&lt;/object&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;filters&gt;Parcel_ID__c == Ids&lt;/filters&gt;<br/>
+&nbsp;&nbsp;&lt;/recordLookups&gt;<br/>
+&lt;/Flow&gt;
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem;">💬 Prompt Execution Sandbox</h4>
+                        <div class="ai-chat-card" style="height: 400px;">
+                            <div class="chat-messages" id="agentforceLabMessages" style="flex: 1;">
+                                <div class="chat-bubble bot">
+                                    <strong>🤖 Agentforce Flow Sandbox Ready:</strong> Type any test query below to test the prompt response generation action.
+                                </div>
+                            </div>
+                            <div class="chat-input-row">
+                                <input type="text" id="agentforceLabInput" class="chat-input" placeholder="e.g. Generate delivery summary for TRK-582019..." />
+                                <button class="btn-primary" onclick="
+                                    const inp = document.getElementById('agentforceLabInput');
+                                    const val = inp.value.trim();
+                                    if(val) {
+                                        const box = document.getElementById('agentforceLabMessages');
+                                        box.innerHTML += `<div class='chat-bubble user'>${val}</div>`;
+                                        inp.value = '';
+                                        setTimeout(() => {
+                                            import('./agentforce.js').then(mod => {
+                                                const output = mod.simulateAgentforceResponse(val, window.swiftApp.data);
+                                                box.innerHTML += `<div class='chat-bubble bot'>${output.reply.replace(/\n/g, '<br/>')}</div>`;
+                                                box.scrollTop = box.scrollHeight;
+                                            });
+                                        }, 400);
+                                    }
+                                ">Execute Flow</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Creating New Record -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h3 id="modalTitle" style="font-size: 1.15rem; font-weight: 700;">Create Record</h3>
+                <button id="modalCloseBtn" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">✕</button>
+            </div>
+            <div id="modalBody">
+                <form id="modalForm">
+                    <!-- Injected dynamically -->
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <span id="toastMessage">Action completed</span>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Main JS -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
